@@ -82,7 +82,6 @@ const fetchDonateInfo = async (opayId, token) => {
     },
   });
   const data = await response.json();
-  console.log(data);
 
   return data;
 };
@@ -92,9 +91,7 @@ const fetchDonateInfo = async (opayId, token) => {
   const job = new CronJob(
     '*/5 * * * * *',
     async () => {
-      console.log('tick');
       await checkDonate(opayId, opayInfo);
-      console.log('done one');
     },
     null,
     true,
