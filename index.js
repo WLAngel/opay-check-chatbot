@@ -15,6 +15,7 @@ const checkDonateEndpoint = 'https://payment.opay.tw/Broadcaster/CheckDonate/';
 
 let donateHistoryId = 0;
 let tmiClient;
+let opayRequestToken;
 
 tmiClient = new tmi.Client({
   options: { debug: true },
@@ -56,8 +57,8 @@ const fetchOpayInfo = async (opayId) => {
   return match[1];
 };
 
-const checkDonate = async (opayId, token) => {
-  const response = await fetchDonateInfo(opayId, token);
+const checkDonate = async (opayId) => {
+  const response = await fetchDonateInfo(opayId, opayRequestToken);
   const { lstDonate, settings } = response;
   for (const donate of lstDonate) {
     if (donateHistoryId < donate.donateid) {
@@ -87,11 +88,14 @@ const fetchDonateInfo = async (opayId, token) => {
 };
 
 (async () => {
-  let opayInfo = await fetchOpayInfo(opayId);
+  opayRequestToken = await fetchOpayInfo(opayId);
+  setInterval(async () => {
+    opayRequestToken = await fetchOpayInfo(opayId);
+  }, 21600000);
   const job = new CronJob(
     '*/5 * * * * *',
     async () => {
-      await checkDonate(opayId, opayInfo);
+      await checkDonate(opayId);
     },
     null,
     true,
