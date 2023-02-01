@@ -18,7 +18,7 @@ let tmiClient;
 let opayRequestToken;
 
 tmiClient = new tmi.Client({
-  options: { debug: true },
+  // options: { debug: true },
   identity: {
     username: process.env.CHATBOT_USERNAME,
     password: process.env.CHATBOT_OAUTH_TOKEN,
