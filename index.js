@@ -63,7 +63,8 @@ const checkDonate = async (opayId) => {
   for (const donate of lstDonate) {
     if (donateHistoryId < donate.donateid) {
       const msgTemplate = he.decode(settings.MsgTemplate);
-      let message = msgTemplate.replace('{name}', donate.name).replace('{amount}', donate.amount) + ` - ${donate.msg}`;
+      let message = msgTemplate.replace('{name}', donate.name).replace('{amount}', donate.amount);
+      message += donate.msg !== null ? ` - ${donate.msg}` : '';
       tmiClient.say(chatbotSendToChannel, message);
       donateHistoryId = donate.donateid;
       await sleep(1000);
