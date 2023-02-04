@@ -3,6 +3,7 @@ require('dotenv').config()
 const nodeFetch = require('node-fetch');
 const fetchCookie = require('fetch-cookie');
 const tmi = require('tmi.js');
+const retry = require('async-retry');
 const he = require('he');
 const { CronJob } = require('cron');
 
@@ -58,7 +59,14 @@ const fetchOpayInfo = async (opayId) => {
 };
 
 const checkDonate = async (opayId) => {
-  const response = await fetchDonateInfo(opayId, opayRequestToken);
+  const response = await retry(
+    async (bail) => {
+      return await fetchDonateInfo(opayId, opayRequestToken);
+    },
+    {
+      retries: 10,
+    }
+  );
   const { lstDonate, settings } = response;
   for (const donate of lstDonate) {
     if (donateHistoryId < donate.donateid) {
