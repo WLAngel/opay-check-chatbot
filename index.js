@@ -1,22 +1,14 @@
 require('dotenv').config()
 
-const nodeFetch = require('node-fetch');
-const fetchCookie = require('fetch-cookie');
 const tmi = require('tmi.js');
-const retry = require('async-retry');
 const he = require('he');
-const { CronJob } = require('cron');
-
-const fetch = fetchCookie(nodeFetch);
+const { io } = require('socket.io-client');
 
 const opayId = process.env.OPAY_ID;
 const chatbotSendToChannel = process.env.CHATBOT_SEND_TO_CHANNEL;
-const alertBoxEndpoint = 'https://payment.opay.tw/Broadcaster/AlertBox/';
-const checkDonateEndpoint = 'https://payment.opay.tw/Broadcaster/CheckDonate/';
 
 let donateHistoryId = 0;
 let tmiClient;
-let opayRequestToken;
 
 tmiClient = new tmi.Client({
   // options: { debug: true },
@@ -41,32 +33,9 @@ const sleep = async (ms) => {
   });
 }
 
-const fetchOpayInfo = async (opayId) => {
-  const response = await fetch(alertBoxEndpoint + opayId, {
-    headers: {
-      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    },
-  });
-  const data = await response.text();
-  const regex = /var token = '<input name="__RequestVerificationToken".+value="(.+)"/;
-  const match = data.match(regex);
-
-  if (!Array.isArray(match)) {
-    throw new Error('解析 token 失敗');
-  }
-
-  return match[1];
-};
-
-const checkDonate = async (opayId) => {
-  const response = await retry(
-    async (bail) => {
-      return await fetchDonateInfo(opayId, opayRequestToken);
-    },
-    {
-      retries: 10,
-    }
-  );
+const checkDonate = async (payload) => {
+  console.log(payload);
+  response = payload.data;
   const { lstDonate, settings } = response;
   for (const donate of lstDonate) {
     if (donateHistoryId < donate.donateid) {
@@ -80,33 +49,22 @@ const checkDonate = async (opayId) => {
   };
 };
 
-const fetchDonateInfo = async (opayId, token) => {
-  const params = new URLSearchParams();
-  params.append('__RequestVerificationToken', token);
-  const response = await fetch(checkDonateEndpoint + opayId, {
-    method: 'post',
-    body: params,
-    headers: {
-      'accept': 'application/json, text/javascript, */*; q=0.01',
-      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
-    },
-  });
-  const data = await response.json();
-
-  return data;
-};
-
 (async () => {
-  opayRequestToken = await fetchOpayInfo(opayId);
-  setInterval(async () => {
-    opayRequestToken = await fetchOpayInfo(opayId);
-  }, 21600000);
-  const job = new CronJob(
-    '*/5 * * * * *',
-    async () => {
-      await checkDonate(opayId);
-    },
-    null,
-    true,
-  );
+  const namespace = `/web/live/${opayId}`;
+  const socket = io('https://socket.opay.tw' + namespace, {
+    reconnectionDelayMax: 10000,
+  });
+  socket.on('connect', () => {
+    console.log('on connect - 連線成功');
+  });
+  socket.on('disconnect', () => {
+    console.log('on disconnect - 連線中斷');
+  });
+  socket.on('connect_error', (error) => {
+    console.log('on connect_error - 連線錯誤: ', error);
+  });
+  socket.on('error', (error) => {
+    console.log('on error - 發生錯誤: ', error);
+  });
+  socket.on('notify', checkDonate);
 })();

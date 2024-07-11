@@ -6,6 +6,7 @@
     "fetch-cookie": "^2.1.0",
     "he": "^1.2.0",
     "node-fetch": "^2",
+    "socket.io-client": "^4.7.5",
     "tmi.js": "^1.8.5"
   },
   "devDependencies": {
