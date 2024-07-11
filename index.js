@@ -34,7 +34,6 @@ const sleep = async (ms) => {
 }
 
 const checkDonate = async (payload) => {
-  console.log(payload);
   response = payload.data;
   const { lstDonate, settings } = response;
   for (const donate of lstDonate) {
